@@ -132,10 +132,20 @@ def init_ldap_session(domain, username, password, lmhash, nthash, kerberos, doma
         sys.exit(1)
 
     if kerberos:
-        #target = domain_controller
-        netbiosname = get_machine_name(domain_controller, domain)
-        #dontlookhereok
-        target = netbiosname + "." + domain
+        target = None
+        if domain_controller is not None:
+            try:
+                import socket
+                fqdn = socket.gethostbyaddr(domain_controller)[0]
+                if '.' in fqdn:
+                    target = fqdn
+                    logger.debug(f'[KRB5] Resolved DC FQDN via reverse DNS: {target}')
+            except Exception:
+                pass
+        if target is None:
+            netbiosname = get_machine_name(domain_controller, domain)
+            target = netbiosname + "." + domain
+            logger.debug(f'[KRB5] Reverse DNS failed, falling back to {target}')
     else:
         if domain_controller is not None:
             target = domain_controller

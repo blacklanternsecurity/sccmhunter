@@ -38,9 +38,17 @@ class AddComputerSAMR:
         if self.__targetIp is not None:
             self.__kdcHost = self.__targetIp
 
-
-        if self.__doKerberos and self.__target is None:
-            raise ValueError("Kerberos auth requires DNS name of the target DC. Use -dc-ip.")
+        if self.__doKerberos:
+            if self.__target is None:
+                raise ValueError("Kerberos auth requires DNS name of the target DC. Use -dc-ip.")
+            try:
+                import socket
+                fqdn = socket.gethostbyaddr(self.__target)[0]
+                if '.' in fqdn:
+                    sccmlogger.debug(f'[KRB5] Resolved DC FQDN via reverse DNS: {fqdn}')
+                    self.__target = fqdn
+            except Exception:
+                pass
 
 
         if self.__hashes is not None:

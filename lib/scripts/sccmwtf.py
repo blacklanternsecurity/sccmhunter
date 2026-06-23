@@ -181,10 +181,13 @@ class SCCMTools():
             r = requests.request("CCM_POST", f"{self._serverURI}/ccm_system_windowsauth/request", headers=headers, data=data, auth=HttpNtlmAuth(username, password))
         else:
             r = self.sendCCMPostRequestWithOutAuth(data, headers, policies=policies)
-        if r:
+        if r is not None:
             logger.debug(f"[HTTP] Response: {r.status_code} | Content-Length: {r.headers.get('Content-Length', 'N/A')}")
             if r.status_code == 401:
                 logger.info("[-] HTTP 401 Unauthorized — NTLM authentication failed. Check machine account credentials.")
+                return None
+            if not r.ok:
+                logger.info(f"[-] HTTP {r.status_code} from management point.")
                 return None
             multipart_data = decoder.MultipartDecoder.from_response(r)
             for part in multipart_data.parts:

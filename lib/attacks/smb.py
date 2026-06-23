@@ -274,7 +274,10 @@ class SMB:
                 logger.debug(f'[SMB] Connecting to {server}:445 | auth=NTLM(password) user={self.domain}\\{self.username}')
             conn = SMBConnection(server, server, None, timeout=timeout)
             if self.kerberos:
-                conn.kerberosLogin(user=self.username, password=self.password, domain=self.domain, kdcHost=self.dc_ip)
+                conn.kerberosLogin(user=self.username or '', password=self.password or '',
+                                   domain=self.domain or '', lmhash=self.lmhash or '',
+                                   nthash=self.nthash or '', aesKey=self.aes or '',
+                                   kdcHost=self.dc_ip)
             else:
                 conn.login(user=self.username, password=self.password, domain=self.domain, lmhash=self.lmhash, nthash=self.nthash)
             logger.debug(f"[+] Connected to smb://{server}:445")
@@ -370,7 +373,10 @@ class SMB:
                     logger.debug(f'[SMB] spider: connecting to {target}:445 | auth=NTLM user={self.domain}\\{self.username}')
                 conn = SMBConnection(target, target, None, timeout=timeout)
                 if self.kerberos:
-                    conn.kerberosLogin(user=self.username, password=self.password, domain=self.domain, kdcHost=self.dc_ip)
+                    conn.kerberosLogin(user=self.username or '', password=self.password or '',
+                                       domain=self.domain or '', lmhash=self.lmhash or '',
+                                       nthash=self.nthash or '', aesKey=self.aes or '',
+                                       kdcHost=self.dc_ip)
                 else:
                     conn.login(user=self.username, password=self.password, domain=self.domain, lmhash=self.lmhash, nthash=self.nthash)
                 logger.info(f'[*] Searching {target} for PXEBoot variables files.')

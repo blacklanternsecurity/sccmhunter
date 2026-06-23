@@ -340,16 +340,19 @@ class SCCMTools():
             try:
                 logger.info("[*] trying unauthenticated registration")
                 deflatedData = self.sendCCMPostRequest(data, False, username, password,policies=policies)
-                r = re.findall("SMSID=\"GUID:([^\"]+)\"", deflatedData)
             except:
                 logger.info("[!] unauthenticated registration failed you should try with credentials")
                 raise "Failed"
         else:
                 deflatedData = self.sendCCMPostRequest(data, True, username, password,policies=policies)
-                r = re.findall("SMSID=\"GUID:([^\"]+)\"", deflatedData)
-        if r != None:
+        if deflatedData is None:
+            logger.info("[-] Registration failed: no valid response from management point. Check machine account credentials and MP connectivity.")
+            return None
+        r = re.findall("SMSID=\"GUID:([^\"]+)\"", deflatedData)
+        if r:
             return r[0]
 
+        logger.info(f"[-] Registration response did not contain an SMSID. Response: {deflatedData[:500]}")
         return None
 
     def sendPolicyRequest(self, name, fqname, uuid, targetName, targetFQDN, targetUUID):
@@ -550,6 +553,9 @@ class SCCMTools():
         
         logger.debug("[*] Registering our fake server...")
         uuid = self.sendRegistration(self._target_name, self._target_fqdn, self.target_username, self.target_password)
+
+        if uuid is None:
+            raise Exception("Registration failed — could not obtain a client UUID from the management point.")
 
         self.rename_key(uuid)
         logger.info(f"[*] Done.. our ID is {uuid}")

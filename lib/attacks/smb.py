@@ -1,6 +1,7 @@
 # fix debug output, not seeing enough info "or any info"
 
 from impacket.smbconnection import SMBConnection, SessionError
+from impacket.krb5.ccache import CCache
 from impacket.dcerpc.v5 import transport, rrp
 from lib.scripts.reg import RemoteOperations
 from lib.logger import logger
@@ -42,6 +43,19 @@ class SMB:
             self.lmhash, self.nthash = self.hashes.split(':')
         self.database = f"{logs_dir}/db/find.db"
         self.conn = sqlite3.connect(self.database, check_same_thread=False)
+        self.krb_domain = self._resolve_krb_domain()
+
+    def _resolve_krb_domain(self):
+        if not self.kerberos:
+            return self.domain
+        try:
+            ccache = CCache.loadFile(os.getenv('KRB5CCNAME'))
+            realm = ccache.principal.realm['data'].decode('utf-8')
+            if realm.lower() != self.domain.lower():
+                logger.debug(f'[KRB5] CCache realm ({realm}) differs from -d ({self.domain}), using CCache realm for SMB auth')
+            return realm
+        except Exception:
+            return self.domain
 
     def run(self):
         #TODO add check to be sure FIND module was run
@@ -275,7 +289,7 @@ class SMB:
             conn = SMBConnection(server, server, None, timeout=timeout)
             if self.kerberos:
                 conn.kerberosLogin(user=self.username or '', password=self.password or '',
-                                   domain=self.domain or '', lmhash=self.lmhash or '',
+                                   domain=self.krb_domain or '', lmhash=self.lmhash or '',
                                    nthash=self.nthash or '', aesKey=self.aes or '',
                                    kdcHost=self.dc_ip)
             else:
@@ -374,7 +388,7 @@ class SMB:
                 conn = SMBConnection(target, target, None, timeout=timeout)
                 if self.kerberos:
                     conn.kerberosLogin(user=self.username or '', password=self.password or '',
-                                       domain=self.domain or '', lmhash=self.lmhash or '',
+                                       domain=self.krb_domain or '', lmhash=self.lmhash or '',
                                        nthash=self.nthash or '', aesKey=self.aes or '',
                                        kdcHost=self.dc_ip)
                 else:

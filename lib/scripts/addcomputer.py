@@ -85,8 +85,8 @@ class AddComputerSAMR:
 
         if hasattr(rpctransport, 'set_credentials'):
             # This method exists only for selected protocol sequences.
-            rpctransport.set_credentials(self.__username, self.__password, self.__domain, self.__lmhash,
-                                         self.__nthash, self.__aesKey)
+            rpctransport.set_credentials(self.__username or '', self.__password or '', self.__domain or '',
+                                         self.__lmhash or '', self.__nthash or '', self.__aesKey or '')
 
         rpctransport.set_kerberos(self.__doKerberos, self.__kdcHost)
         self.doSAMRAdd(rpctransport)

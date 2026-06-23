@@ -38,7 +38,7 @@ class DATABASE:
             return True
         
     def validate_tables(self):
-        table_names = ["CAS", "SiteServers", "ManagementPoints", "SiteDatabases", "DistributionPoints", "Users", "Groups", "Computers", "Creds"]
+        table_names = ["CAS", "SiteServers", "ManagementPoints", "SiteDatabases", "PXEDistributionPoints", "Users", "Groups", "Computers", "Creds"]
         try:
             for table_name in table_names:
                 validated = self.conn.execute(f'''select name FROM sqlite_master WHERE type=\'table\' and name =\'{table_name}\'
@@ -300,33 +300,34 @@ class SCCMHUNTER:
         if self.ldap_session.entries:
             logger.info(f"[+] Found {len(self.ldap_session.entries)} principals that contain the string 'SCCM' or 'MECM'.")
             for entry in self.ldap_session.entries:
-                #TODO: should there be logic for OU members?
                 try:
-                    if 'sAMAccountType' in entry:
-                        #add user to db
-                        if (entry['sAMAccountType']) == 805306368:
-                            self.add_user_to_db(entry)
-                        #add computer to db
-                        if (entry['sAMAccountType']) == 805306369:
-                            hostname =  str(entry['dNSHostname'])
-                            if hostname:
-                                self.add_computer_to_db(hostname)
-                        #add group to db and then resolve members
-                        if (entry['sAMAccountType']) == 268435456:
-                            self.add_group_to_db(entry)
-                            if self.resolve:
-                                dn = (entry['distinguishedname'])
-                                results = self.recursive_resolution(dn)
-                                for result in results:
-                                    #add parsed results to DB
-                                    if (result['sAMAccountType']) == 805306368:
-                                        self.add_user_to_db(result)
-                                    if (result['sAMAccountType']) == 805306369:
-                                        hostname =  str(result['dNSHostname'])
-                                        if hostname:
-                                            self.add_computer_to_db(result)
-                                    if (result['sAMAccountType']) == 268435456:
-                                        self.add_group_to_db(result)
+                    if 'sAMAccountType' not in entry:
+                        logger.debug(f"[*] Skipping entry without sAMAccountType: {entry.entry_dn}")
+                        continue
+                    sam_type = int(str(entry['sAMAccountType']))
+                    if sam_type == 805306368:
+                        self.add_user_to_db(entry)
+                    elif sam_type == 805306369:
+                        hostname =  str(entry['dNSHostname'])
+                        if hostname:
+                            self.add_computer_to_db(hostname)
+                    elif sam_type == 268435456:
+                        self.add_group_to_db(entry)
+                        if self.resolve:
+                            dn = (entry['distinguishedname'])
+                            results = self.recursive_resolution(dn)
+                            for result in results:
+                                result_type = int(str(result['sAMAccountType']))
+                                if result_type == 805306368:
+                                    self.add_user_to_db(result)
+                                elif result_type == 805306369:
+                                    hostname =  str(result['dNSHostname'])
+                                    if hostname:
+                                        self.add_computer_to_db(hostname)
+                                elif result_type == 268435456:
+                                    self.add_group_to_db(result)
+                    else:
+                        logger.debug(f"[*] Skipping entry with unknown sAMAccountType {sam_type}: {entry.entry_dn}")
                 except ldap3.core.exceptions.LDAPAttributeError as e:
                     logger.debug(f"[-] {e}")
                 except ldap3.core.exceptions.LDAPKeyError as e:

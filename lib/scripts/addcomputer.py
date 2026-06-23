@@ -39,8 +39,8 @@ class AddComputerSAMR:
             self.__kdcHost = self.__targetIp
 
 
-        if self.__doKerberos and self.dc_host is None:
-            raise ValueError("Kerberos auth requires DNS name of the target DC. Use -dc-host.")
+        if self.__doKerberos and self.__target is None:
+            raise ValueError("Kerberos auth requires DNS name of the target DC. Use -dc-ip.")
 
 
         if self.__hashes is not None:

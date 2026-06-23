@@ -180,7 +180,7 @@ class HTTP:
 
     def autopwn(self):
         if self.auto:
-            if not (self.username or self.password):
+            if not (self.username or self.password or self.kerberos):
                 logger.info("Missing user credentials, check your arguments and try again.")
                 sys.exit()
             logger.info("[*] User selected auto. Attempting to add a machine account then request policies.")
